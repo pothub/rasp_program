@@ -159,17 +159,32 @@ int takePicture(const char *path){
 	}
 	return 0;
 }
+int gx=0;
+CvMoments moments;
 void excolor(){
 	if((img_origin = cvQueryFrame(capture)) == NULL) return;
 	cvSplit(img_origin,img[2],img[1],img[0],NULL);//BGR
 
 	cvThreshold(img[2],imgThreshold[2],100,255,CV_THRESH_BINARY);
-	cvDiv(img[2],img[1],imgTmp,10);
-	cvThreshold(imgTmp,imgThreshold[1],10,255,CV_THRESH_BINARY);
-	cvDiv(img[2],img[0],imgTmp,10);
-	cvThreshold(imgTmp,imgThreshold[0],10,255,CV_THRESH_BINARY);
+	cvDiv(img[2],img[1],imgTmp,4);
+	cvThreshold(imgTmp,imgThreshold[1],4,255,CV_THRESH_BINARY);
+	cvDiv(img[2],img[0],imgTmp,4);
+	cvThreshold(imgTmp,imgThreshold[0],4,255,CV_THRESH_BINARY);
 	cvAnd(imgThreshold[1],imgThreshold[0],imgTmp,NULL);
 	cvAnd(imgTmp,imgThreshold[2],imgResult,NULL);
+
+	// cvThreshold(img[2],imgThreshold[2],100,255,CV_THRESH_BINARY);
+	// cvDiv(img[2],img[1],imgTmp,10);
+	// cvThreshold(imgTmp,imgThreshold[1],10,255,CV_THRESH_BINARY);
+	// cvDiv(img[2],img[0],imgTmp,10);
+	// cvThreshold(imgTmp,imgThreshold[0],10,255,CV_THRESH_BINARY);
+	// cvAnd(imgThreshold[1],imgThreshold[0],imgTmp,NULL);
+	// cvAnd(imgTmp,imgThreshold[2],imgResult,NULL);
+
+	cvMoments(imgResult,&moments,0);
+	double m00 = cvGetSpatialMoment(&moments,0,0);
+	double m10 = cvGetSpatialMoment(&moments,1,0);
+	gx = m10/m00;
 }
 void bz_num(int num){
 	int i=0;
@@ -318,7 +333,9 @@ void step5(int pow){
 	delay(1000);
 	while((read_adc(4)>sensor)&&(read_adc(5)>sensor)&&(read_adc(6)>sensor)&&(read_adc(7)>sensor));
 	int turn=0;
-	while(turn != 1){
+	int cnt=0;
+	while(cnt<300 || pitch > 100){
+		update_mpu();
 		if(read_adc(4)<sensor){
 			motor(0,pow+10);
 			motor(1,pow);
@@ -347,7 +364,25 @@ void step5(int pow){
 				turn =1;
 			}
 		}
+		printf("%d\n",cnt++);
+		if(cnt > 250 && cnt < 300) yaw=0;
 	}
+	motor(0,20);
+	motor(1,20);
+	delay(1000);
+	while(yaw<400){
+		motor(0,-20);
+		motor(1,20);
+		update_mpu();
+		printf("step2\t1\t%d\n",yaw);
+		delay(10);
+	}
+	motor(0,0);
+	motor(1,0);
+	delay(500);
+	motor(0,-20);
+	motor(1,-20);
+	delay(1000);
 }
 int main(){
 	wiringPiSetupGpio();
@@ -356,8 +391,20 @@ int main(){
 	set_spi();
 	set_servo();
 	set_gpio();
+	setcam();
 	bz_num(1);
 
+	// char path[256];
+	// while(1){
+	// 	int i=0;
+	// 	for(;i<10;i++){
+	// 		sprintf(path, "photo/cam%05d.jpg", i);
+	// 		excolor();
+	// 		takePicture(path);
+	// 		printf("gx\t%d\n",gx);
+	// 	}
+	// 	delay(2000);
+	// }
 	int case_num = 1;
 	while(read_adc(2)<sensor){
 		if(read_adc(0)>sensor){
@@ -386,7 +433,6 @@ int main(){
 			step3(20);
 			bz_num(4);
 			step5(30);
-			bz_num(1);
 		case 5:
 			bz_num(5);
 	}
@@ -401,41 +447,19 @@ int main(){
 		printf("\n");
 		delay(100);
 	}
-	motor(0,-50);
-	motor(1,-50);
-	while(1);
-	while(1){
-		int i=0;
-		for(i=0;i<50;i++){
-			motor(0,i);
-			motor(1,i);
-			delay(200);
-		}
-		for(i=50;i>-50;i--){
-			motor(0,i);
-			motor(1,i);
-			delay(200);
-		}
-		for(i=-50;i<0;i++){
-			motor(0,i);
-			motor(1,i);
-			delay(200);
-		}
-	}
 	while(1){
 		update_mpu();
 		printf("%d\t%d\n",yaw,pitch);
 		delay(10);
 	}
 
-	char path[256];
-	int i=0;
-	setcam();
-	for(;i<10;i++){
-		sprintf(path, "photo/cam%05d.jpg", i);
-		excolor();
-		takePicture(path);
-	}
+	// char path[256];
+	// setcam();
+	// for(;i<10;i++){
+	// 	sprintf(path, "photo/cam%05d.jpg", i);
+	// 	excolor();
+	// 	takePicture(path);
+	// }
 	cvReleaseCapture(&capture);
 
 	while(1){
