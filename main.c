@@ -16,7 +16,8 @@ int yaw=0,pitch=0;	//mpu6050
 #define hi 240
 #define RANGE 100
 #define CS 24
-#define max_case 3
+#define max_case 5
+#define sensor 3800
 void set_motor(){
 	softPwmCreate(4,0,RANGE);
 	softPwmCreate(17,0,RANGE);
@@ -24,8 +25,8 @@ void set_motor(){
 	softPwmCreate(22,0,RANGE);
 }
 void motor(int num, int pow){
-	if(pow > 100) pow = 100;
-	if(pow < -100) pow = -100;
+	if(pow > 70) pow = 70;
+	if(pow < -70) pow = -70;
 	if(num == 0){
 		if(pow>0){
 			softPwmWrite(4,pow);
@@ -102,27 +103,32 @@ void set_mpu(){
 	}
 	wiringPiI2CWriteReg8(fd,0x6B,00);
 }
-int yaw_tmp=0;
 void update_mpu(){
 	short int ax,ay,az,gx,gy,gz;
 	static int n=0,p=0;
 	ax = wiringPiI2CReadReg8(fd,0x3B)<<8|wiringPiI2CReadReg8(fd,0x3C);
+	delay(1);
 	ay = wiringPiI2CReadReg8(fd,0x3D)<<8|wiringPiI2CReadReg8(fd,0x3E);
+	delay(1);
 	az = wiringPiI2CReadReg8(fd,0x3F)<<8|wiringPiI2CReadReg8(fd,0x40);
+	delay(1);
 	gx = wiringPiI2CReadReg8(fd,0x43)<<8|wiringPiI2CReadReg8(fd,0x44);
+	delay(1);
 	gy = wiringPiI2CReadReg8(fd,0x45)<<8|wiringPiI2CReadReg8(fd,0x46);
+	delay(1);
 	gz = wiringPiI2CReadReg8(fd,0x47)<<8|wiringPiI2CReadReg8(fd,0x48);
+	delay(1);
 	n=0.9*(p+gy/100)+0.1*ay;
 	pitch=(0.9*n+0.1*p)/10;
 	p=n;
-	yaw+=gz/1000-yaw_tmp;
+	yaw+=gz/1000;
 }
 void set_servo(){
 	pinMode(18,PWM_OUTPUT);
 	pwmSetMode(PWM_MODE_MS);
 	pwmSetClock(400);
 	pwmSetRange(1024);
-	pwmWrite(18,75);
+	pwmWrite(18,85);
 }
 void setcam(){
 	capture = cvCreateCameraCapture(-1);
@@ -178,13 +184,13 @@ void bz_num(int num){
 	delay(500);
 }
 void step1(){
-	while(read_adc(3)<3500){
-		if(read_adc(4)<3500){
+	while(read_adc(3)<sensor){
+		if(read_adc(4)<sensor){
 			printf("4\n");
 			motor(0,30);
 			motor(1,20);
 		}
-		else if(read_adc(7)<3500){
+		else if(read_adc(7)<sensor){
 			printf("7\n");
 			motor(0,20);
 			motor(1,30);
@@ -197,15 +203,14 @@ void step1(){
 	}
 }
 void step2(){
-	update_mpu();
-	yaw_tmp=yaw;
+	yaw=0;
 	motor(0,-20);
 	motor(1,-20);
 	delay(500);
 	motor(0,0);
 	motor(1,0);
 	delay(500);
-	while(yaw<600){
+	while(yaw<500){
 		motor(0,-20);
 		motor(1,20);
 		update_mpu();
@@ -221,7 +226,7 @@ void step2(){
 	motor(0,0);
 	motor(1,0);
 	delay(500);
-	while(yaw>-100){
+	while(yaw>-50){
 		motor(0,20);
 		motor(1,-20);
 		update_mpu();
@@ -233,11 +238,11 @@ void step2(){
 	delay(500);
 	motor(0,20);
 	motor(1,20);
-	delay(5000);
+	delay(4500);
 	motor(0,0);
 	motor(1,0);
 	delay(500);
-	while(yaw>-700){
+	while(yaw>-550){
 		motor(0,20);
 		motor(1,-20);
 		update_mpu();
@@ -249,43 +254,94 @@ void step2(){
 	delay(500);
 	motor(0,20);
 	motor(1,20);
-	while((read_adc(4)>3500)&&(read_adc(5)>3500)&&(read_adc(6)>3500)&&(read_adc(7)>3500));
+	while((read_adc(4)>sensor)&&(read_adc(5)>sensor)&&(read_adc(6)>sensor)&&(read_adc(7)>sensor));
 	motor(0,0);
 	motor(1,0);
-	// while(1){
-	// 	update_mpu();
-	// 	printf("%d\t%d\n",yaw,pitch);
-	// 	delay(10);
-	// }
 }
-void step3(){
+void step3(int pow){
 	int turn=0;
 	while(turn != 1){
-		if(read_adc(4)<3500){
-			printf("4\n");
-			motor(0,30);
-			motor(1,20);
+		if(read_adc(4)<sensor){
+			motor(0,pow+10);
+			motor(1,pow);
 			turn=4;
 		}
-		else if(read_adc(7)<3500){
-			printf("7\n");
-			motor(0,20);
-			motor(1,30);
+		else if(read_adc(7)<sensor){
+			motor(0,pow);
+			motor(1,pow+10);
 			turn=7;
 		}
 		else{
-			if((read_adc(5)<3500)||read_adc(6)<3500){
-				motor(0,20);
-				motor(1,20);
+			if((read_adc(5)<sensor)||read_adc(6)<sensor){
+				motor(0,pow);
+				motor(1,pow);
 				turn = 56;
 			}
 			else if(turn == 4){
-				motor(0,40);
-				motor(1,10);
+				motor(0,pow+20);
+				motor(1,pow-10);
 			}
 			else if(turn == 7){
-				motor(0,10);
-				motor(1,40);
+				motor(0,pow-10);
+				motor(1,pow+20);
+			}
+			else if(turn == 56){
+				turn =1;
+			}
+		}
+	}
+}
+void step4(){
+	motor(0,20);
+	motor(1,-20);
+	delay(500);
+}
+void step5(int pow){
+	yaw = 0;
+	while(read_adc(3)<sensor){
+		int m=yaw/5;
+		update_mpu();
+		printf("%d\t%d\t%d\n",yaw,20-m,20+m);
+		if(m>20) m=20;
+		if(m<-20) m=-20;
+		motor(0,20+m);
+		motor(1,20-m);
+	}
+	motor(0,-20);
+	motor(1,-20);
+	delay(500);
+	motor(0,0);
+	motor(1,0);
+	delay(500);
+	motor(0,20);
+	motor(1,-20);
+	delay(1000);
+	while((read_adc(4)>sensor)&&(read_adc(5)>sensor)&&(read_adc(6)>sensor)&&(read_adc(7)>sensor));
+	int turn=0;
+	while(turn != 1){
+		if(read_adc(4)<sensor){
+			motor(0,pow+10);
+			motor(1,pow);
+			turn=4;
+		}
+		else if(read_adc(7)<sensor){
+			motor(0,pow);
+			motor(1,pow+10);
+			turn=7;
+		}
+		else{
+			if((read_adc(5)<sensor)||read_adc(6)<sensor){
+				motor(0,pow);
+				motor(1,pow);
+				turn = 56;
+			}
+			else if(turn == 4){
+				motor(0,pow+20);
+				motor(1,pow-10);
+			}
+			else if(turn == 7){
+				motor(0,pow-10);
+				motor(1,pow+20);
 			}
 			else if(turn == 56){
 				turn =1;
@@ -303,8 +359,8 @@ int main(){
 	bz_num(1);
 
 	int case_num = 1;
-	while(read_adc(2)<1000){
-		if(read_adc(0)>3000){
+	while(read_adc(2)<sensor){
+		if(read_adc(0)>sensor){
 			case_num++;
 			if(case_num>max_case) case_num=1;
 			delay(100);
@@ -322,9 +378,17 @@ int main(){
 			step2();
 		case 3:
 			bz_num(3);
-			step3();
+			step3(20);
+			bz_num(1);
+			step4();
+			bz_num(1);
 		case 4:
+			step3(20);
 			bz_num(4);
+			step5(30);
+			bz_num(1);
+		case 5:
+			bz_num(5);
 	}
 	while(1);
 	while(1){
