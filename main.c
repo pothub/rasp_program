@@ -19,8 +19,6 @@ int yaw=0,pitch=0;	//mpu6050
 #define max_case 5
 #define sensor 3800
 
-#define _step4
-
 void set_motor(){
 	softPwmCreate(4,0,RANGE);
 	softPwmCreate(17,0,RANGE);
@@ -251,9 +249,9 @@ void step2(){
 	motor(0,0);
 	motor(1,0);
 	delay(500);
-	motor(0,20);
+	motor(0,23);
 	motor(1,20);
-	delay(2500);
+	delay(2200);
 	motor(0,0);
 	motor(1,0);
 	delay(500);
@@ -269,7 +267,7 @@ void step2(){
 	delay(500);
 	motor(0,23);
 	motor(1,20);
-	delay(4000);
+	delay(3200);
 	motor(0,0);
 	motor(1,0);
 	delay(500);
@@ -325,15 +323,15 @@ void step3(int pow){
 void step4(){
 	motor(0,20);
 	motor(1,20);
-	delay(500);
+	delay(700);
 	motor(0,0);
 	motor(1,0);
 
 	if((read_adc(4)<sensor||read_adc(5)<sensor||read_adc(6)<sensor||read_adc(7)<sensor)){
 		motor(0,20);
 		motor(1,-20);
-		delay(300);
-			step3(20);
+		delay(800);
+		step3(20);
 	}
 }
 void step5(int pow){
@@ -353,9 +351,16 @@ void step5(int pow){
 	motor(0,0);
 	motor(1,0);
 	delay(500);
-	motor(0,20);
-	motor(1,-20);
-	delay(1000);
+	yaw = 0;
+	while(yaw>-400){
+		motor(0,20);
+		motor(1,-20);
+		update_mpu();
+		delay(10);
+	}
+	// motor(0,20);
+	// motor(1,-20);
+	// delay(1000);
 	while((read_adc(4)>sensor)&&(read_adc(5)>sensor)&&(read_adc(6)>sensor)&&(read_adc(7)>sensor));
 	int turn=0;
 	int cnt=0;
@@ -394,7 +399,7 @@ void step5(int pow){
 	}
 	motor(0,20);
 	motor(1,20);
-	delay(1000);
+	delay(1300);
 	while(yaw<400){
 		motor(0,-20);
 		motor(1,20);
@@ -407,7 +412,7 @@ void step5(int pow){
 	delay(500);
 	motor(0,-20);
 	motor(1,-20);
-	delay(1000);
+	delay(500);
 }
 void step6(){
 	yaw=0;
@@ -421,8 +426,8 @@ void step6(){
 		int m=(170-gx)/10;
 		if(m>20) m=20;
 		if(m<-20) m=-20;
-		motor(0,20-m);
-		motor(1,20+m);
+		motor(0,10-m);
+		motor(1,10+m);
 		printf("m\t%d\n",m);
 		// int i=0;
 		// for(;i<10;i++){
@@ -435,11 +440,11 @@ void step6(){
 	}
 	motor(0,0);
 	motor(1,0);
-	pwmWrite(18,50);
+	pwmWrite(18,55);
 	delay(1000);
 	air(1);
 	delay(1000);
-	pwmWrite(18,85);
+	pwmWrite(18,80);
 
 	int i=0;
 	bz_num(1);
@@ -457,7 +462,7 @@ void step6(){
 	}
 	bz_num(1);
 	i=0;
-	while(i<150){
+	while(i<100){
 		i++;
 		exblack();
 		int black_motor=(150-black_x)/8;
@@ -471,10 +476,60 @@ void step6(){
 	motor(1,0);
 	delay(100);
 	yaw = 0;
+	i=0;
+	while(i<200){
+		i++;
+		int m=yaw/5;
+		update_mpu();
+		if(m>20) m=20;
+		if(m<-20) m=-20;
+		motor(0,20+m);
+		motor(1,20-m);
+	}
+	bz_num(1);
+	i=0;
+	while(i<100){
+		i++;
+		exblack();
+		int black_motor=(150-black_x)/8;
+		printf("%d\t%d\n",black_motor,i);
+		if(black_motor>20) black_motor=20;
+		if(black_motor<-20) black_motor=-20;
+		motor(0,-black_motor);
+		motor(1,black_motor);
+	}
+	motor(0,0);
+	motor(1,0);
+	delay(100);
+	yaw = 0;
+	// i=0;
+	// while(i<200){
+	// 	i++;
+	// 	int m=yaw/5;
+	// 	update_mpu();
+	// 	if(m>20) m=20;
+	// 	if(m<-20) m=-20;
+	// 	motor(0,20+m);
+	// 	motor(1,20-m);
+	// }
+	// bz_num(1);
+	// i=0;
+	// while(i<100){
+	// 	i++;
+	// 	exblack();
+	// 	int black_motor=(150-black_x)/8;
+	// 	printf("%d\t%d\n",black_motor,i);
+	// 	if(black_motor>20) black_motor=20;
+	// 	if(black_motor<-20) black_motor=-20;
+	// 	motor(0,-black_motor);
+	// 	motor(1,black_motor);
+	// }
+	// motor(0,0);
+	// motor(1,0);
+	// delay(100);
 	while((read_adc(4)<sensor)&&(read_adc(5)<sensor)&&(read_adc(6)<sensor)&&(read_adc(7)<sensor)){
 		int m=yaw/5;
 		update_mpu();
-		printf("%d\t%d\t%d\n",yaw,20-m,20+m);
 		if(m>20) m=20;
 		if(m<-20) m=-20;
 		motor(0,20+m);
@@ -482,11 +537,11 @@ void step6(){
 	}
 	motor(0,0);
 	motor(1,0);
-	pwmWrite(18,50);
+	pwmWrite(18,55);
 	delay(1000);
 	air(0);
 	delay(1000);
-	pwmWrite(18,85);
+	pwmWrite(18,80);
 	// char path[256];
 	// while(1){
 	// 	int i=0;
@@ -533,13 +588,11 @@ int main(){
 		case 3:
 			bz_num(3);
 			step3(20);
-#ifdef _step4
 			bz_num(1);
 			step4();
 			bz_num(1);
 		case 4:
 			// step3(20);
-#endif
 			bz_num(4);
 			step5(30);
 		case 5:
@@ -571,16 +624,6 @@ int main(){
 	// 	takePicture(path);
 	// }
 	cvReleaseCapture(&capture);
-
-	while(1){
-		air(0);
-		// pwmWrite(18,30);
-		delay(1000);
-		air(1);
-		// pwmWrite(18,100);
-		delay(2000);
-	}
-
 
 	return 0;
 }
