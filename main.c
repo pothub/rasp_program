@@ -233,50 +233,67 @@ void step1(){
 }
 void step2(){
 	yaw=0;
+	int turn=900;
 	motor(0,-20);
 	motor(1,-20);
 	delay(500);
 	motor(0,0);
 	motor(1,0);
 	delay(500);
-	while(yaw<450){
+	while(yaw<turn){
 		motor(0,-20);
 		motor(1,20);
 		update_mpu();
-		printf("step2\t1\t%d\n",yaw);
-		delay(10);
 	}
 	motor(0,0);
 	motor(1,0);
 	delay(500);
-	motor(0,23);
-	motor(1,20);
-	delay(2200);
+	int i=0;
+	while(i<200){
+		int m=(yaw-turn)/5;
+		update_mpu();
+		i++;
+		printf("i\t%d\n",i);
+		if(m>20) m=20;
+		if(m<-20) m=-20;
+		motor(0,20+m);
+		motor(1,20-m);
+	}
+	// motor(0,23);
+	// motor(1,20);
+	// delay(2200);
 	motor(0,0);
 	motor(1,0);
 	delay(500);
-	while(yaw>-100){
+	while(yaw>0){
 		motor(0,20);
 		motor(1,-20);
 		update_mpu();
-		printf("step2\t2\t%d\n",yaw);
-		delay(10);
 	}
 	motor(0,0);
 	motor(1,0);
 	delay(500);
-	motor(0,23);
-	motor(1,20);
-	delay(3200);
+	i=0;
+	while(i<400){
+		int m=yaw/5;
+		update_mpu();
+		i++;
+		printf("i\t%d\n",i);
+		if(m>20) m=20;
+		if(m<-20) m=-20;
+		motor(0,20+m);
+		motor(1,20-m);
+	}
+	// motor(0,23);
+	// motor(1,20);
+	// delay(3200);
 	motor(0,0);
 	motor(1,0);
 	delay(500);
-	while(yaw>-450){
+	while(yaw>-turn+200){
 		motor(0,20);
 		motor(1,-20);
 		update_mpu();
-		printf("step2\t2\t%d\n",yaw);
-		delay(10);
 	}
 	motor(0,0);
 	motor(1,0);
@@ -418,7 +435,7 @@ void step6(){
 	yaw=0;
 	motor(0,20);
 	motor(1,20);
-	delay(200);
+	delay(500);
 	char path[256];
 	while(read_adc(3)<sensor){
 		excolor();
@@ -460,6 +477,9 @@ void step6(){
 		motor(1,-m);
 		delay(10);
 	}
+	motor(0,20);
+	motor(1,-20);
+	delay(200);
 	bz_num(1);
 	i=0;
 	while(i<100){
